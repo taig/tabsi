@@ -5,7 +5,7 @@ case class Rows[A](values: Seq[Row[A]]) extends AnyVal {
   def height: Int = values.length
 
   /** Width as the amount of [[Columns]] */
-  def width: Int = values.map( _.width ).min
+  def width: Int = if(values.isEmpty) 0 else values.map( _.width ).min
 
   def appendBottom(rows: Rows[A]): Rows[A] = Rows(values ++ rows.values)
 
@@ -30,4 +30,16 @@ object Rows {
   def empty[A]: Rows[A] = Rows(Seq.empty)
   
   def apply[A](row: Row[A], rows: Row[A]*): Rows[A] = Rows(row +: rows)
+
+  /** Append empty cells to give all rows an equal width */
+  def normalize(rows: Rows[Cell]): Rows[Cell] =
+    if(rows.width == 0) rows else {
+      val width = rows.values.map(_.width).max
+      val normalized = rows.values.map { row =>
+        val delta = width - row.width
+        if(delta > 0) row.append(Row(Seq.fill(delta)(Cell.Empty)))
+        else row
+      }
+      Rows(normalized)
+    }
 }
