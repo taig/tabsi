@@ -53,6 +53,7 @@ lazy val documentation = project
       "gray-lighter" -> "#f4f3f4",
       "white-color" -> "#f3f3f3"
     ),
+    micrositePushSiteWith := GitHub4s,
     micrositeTwitterCreator := "@tttaig",
     scalacOptions in Tut -= "-Ywarn-unused-import",
     tutSourceDirectory := sourceDirectory.value

@@ -13,7 +13,7 @@ object Settings {
             Scala212 ::
             Scala211 ::
             Nil,
-        githubProject := "tabulator",
+        githubProject := "tabsi",
         homepage := Some( url( s"http://taig.io/${githubProject.value}/" ) ),
         organization := "io.taig",
         scalacOptions ++=
