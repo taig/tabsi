@@ -1,0 +1,11 @@
+name: Tabsi
+baseurl: /tabsi
+description: Table like String formatting for pretty command line printing
+highlighter: rouge
+docs: true
+collections:
+  tut:
+    output: true
+version: 0.0.1
+org: io.taig
+markdown: kramdown
