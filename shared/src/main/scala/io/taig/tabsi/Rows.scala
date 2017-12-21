@@ -28,4 +28,6 @@ case class Rows[A](values: Seq[Row[A]]) extends AnyVal {
 
 object Rows {
   def empty[A]: Rows[A] = Rows(Seq.empty)
+  
+  def apply[A](row: Row[A], rows: Row[A]*): Rows[A] = Rows(row +: rows)
 }
