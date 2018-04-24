@@ -9,6 +9,7 @@ lazy val core = crossProject
   .settings(
     description := "Table like String formatting for pretty command line printing",
     libraryDependencies ++=
+    "org.typelevel" %% "cats-core" % "1.0.1" ::
       "com.github.dwickern" %% "scala-nameof" % "1.0.3" % "provided" ::
         "org.scalatest" %%% "scalatest" % "3.0.4" % "test" ::
         Nil,

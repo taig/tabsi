@@ -1,24 +1,15 @@
 package io.taig.tabsi
 
-case class Column[A](cells: Seq[A]) extends AnyVal {
-  def height: Int = cells.length
+import cats.data.NonEmptyList
 
-  def append(column: Column[A]): Column[A] = Column(cells ++ column.cells)
+case class Column[A](values: NonEmptyList[A]) extends AnyVal {
+  def height: Int = values.length
 
-  def prepend(column: Column[A]): Column[A] = Column(column.cells ++ cells)
-
-  def map[B](f: A => B): Column[B] = Column(cells.map(f))
-
-  /** Convert this [[Column]] to a [[Rows]] representation, every [[Row]]
-    * containing only one `Column`
-    */
-  def toRows: Rows[A] = Rows( cells.map( Row( _ ) ) )
-
-  override def toString: String = s"Column(${cells.mkString(", ")})"
+  def combine(column: Column[A]): Columns[A] =
+    Columns(NonEmptyList.of(this, column))
 }
 
 object Column {
-  def empty[A]: Column[A] = Column(Seq.empty)
-
-  def apply[A](cell: A, cells: A*): Column[A] = Column(cell +: cells)
+  def apply[A](cell: A, cells: A*): Column[A] =
+    Column(NonEmptyList(cell, cells.toList))
 }

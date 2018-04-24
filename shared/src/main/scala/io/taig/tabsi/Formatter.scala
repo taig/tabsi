@@ -1,50 +1,64 @@
 package io.taig.tabsi
 
-trait Formatter[F[_], A] {
-  def format(value: F[A], styles: Styles): F[String]
+abstract class Formatter[F[_]] {
+  def format(value: F[Cell], styles: Styles): F[String]
 }
 
 object Formatter {
-  def apply[F[_], A](implicit f: Formatter[F, A]): Formatter[F, A] = f
+  def apply[F[_]](implicit f: Formatter[F]): Formatter[F] = f
 
-  private def cellStyles(limit: Int,
-                         width: Width): (Int, Option[Ellipsize]) = width match {
-    case Width.Auto                    => (limit, None)
-    case Width.Fixed(value, ellipsize) => (value, ellipsize)
-    case Width.Limit(value, ellipsize) => (math.min(limit, value), ellipsize)
-  }
+  private val EllipsisCharacter: Char = '…'
 
-  implicit val column: Formatter[Column, Cell] = { (column, styles) =>
+  private def cellStyles(limit: Int, width: Width): (Int, Option[Ellipsis]) =
+    width match {
+      case Width.Auto => (limit, None)
+      case Width.Fixed(value, ellipsize) => (value, ellipsize)
+      case Width.Limit(value, ellipsize) => (math.min(limit, value), ellipsize)
+    }
+
+  private def align(alignment: Alignment, value: String, padding: Int): String =
+    alignment match {
+      case Alignment.Center =>
+        val left = math.floor(padding / 2d).toInt
+        val right = math.ceil(padding / 2d).toInt
+        " " * left + value + " " * right
+      case Alignment.Left => value + " " * padding
+      case Alignment.Right => " " * padding + value
+    }
+
+  private def truncate(ellipsis: Ellipsis, value: String, padding: Int): String =
+    ellipsis match {
+      case Ellipsis.End =>
+        value.substring(0, value.length - padding) + EllipsisCharacter
+      case Ellipsis.Middle =>
+        val center = value.length / 2f
+        val offset = padding / 2f
+        val left = (center - offset).toInt
+        val right = (center + offset).toInt
+        value.substring(0, left) + EllipsisCharacter + value.substring(right)
+      case Ellipsis.Start =>
+        EllipsisCharacter + value.substring(padding)
+    }
+
+  private def formatCell(cell: Cell, alignment: Alignment, width: Int, ellipsize: Option[Ellipsis]): String =
+    cell match {
+      case Cell.Empty => " " * width
+      case Cell.Value(value) =>
+        if(width == value.length) value
+        else if(width > value.length) {
+          val padding = width - value.length
+          align(alignment, value, padding)
+        }
+        else {
+          val padding = value.length - width + 1
+          ellipsize.fold(value.substring(0, width))(truncate(_, value, padding))
+        }
+    }
+
+  implicit val column: Formatter[Column] = { (column, styles) =>
     val style = styles.values.head
-    val limit = column.cells.map(_.size).max
+    val limit = column.values.map(_.size).toList.max
     val (width, ellipsize) = cellStyles(limit, style.width)
-    column.map(_.format(style.alignment, width, ellipsize))
-  }
-
-  implicit val columns: Formatter[Columns, Cell] = { (columns, styles) =>
-    val formattedColumns = (columns.values zip styles.values).map {
-      case (column, style) =>
-        Formatter[Column, Cell].format(column, Styles(style))
-    }
-
-    Columns(formattedColumns)
-  }
-
-  implicit val row: Formatter[Row, Cell] = { (row, styles) =>
-    val cells = (row.cells zip styles.values).map {
-      case (cell, style) =>
-        val (limit, ellipsize) = cellStyles(cell.size, style.width)
-        cell.format(style.alignment, limit, ellipsize)
-    }
-
-    Row(cells)
-  }
-
-  implicit val rows: Formatter[Rows, Cell] = { (rows, styles) =>
-    Formatter[Columns, Cell].format(rows.toColumns, styles).toRows
-  }
-
-  implicit val table: Formatter[Table, Cell] = { (table, styles) =>
-    Table(Formatter[Columns, Cell].format(table.columns, styles))
+    Column(column.values.map(formatCell(_, style.alignment, width, ellipsize)))
   }
 }

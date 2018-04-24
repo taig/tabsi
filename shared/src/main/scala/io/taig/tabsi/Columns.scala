@@ -1,38 +1,23 @@
 package io.taig.tabsi
 
-case class Columns[A](values: Seq[Column[A]]) extends AnyVal {
-  /** Height as the amount of [[Rows]] */
-  def height: Int = values.map( _.height ).min
+import cats.data.NonEmptyList
 
-  /** Width as the amount of [[Columns]] */
+case class Columns[A](values: NonEmptyList[Column[A]]) extends AnyVal {
   def width: Int = values.length
 
-  def appendRight(columns: Columns[A]): Columns[A] =
-    Columns(values ++ columns.values)
+  def height: Int = values.head.height
 
-  def prependLeft(columns: Columns[A]): Columns[A] =
-    Columns(columns.values ++ values)
+  def combine(table: Columns[A]): Columns[A] = Columns(values concatNel table.values)
 
-  def mapCells[B](f: A => B): Columns[B] = Columns(values.map(_.map(f)))
-
-  /** Convert these [[Columns]] to a [[Rows]] representation */
   def toRows: Rows[A] = {
-    val rows = values.foldLeft(Seq.fill(height)(Row.empty[A])) {
-      case (rows, Column(cells)) =>
-        (rows zip cells).map {
-          case (Row(cells), cell) => Row(cells :+ cell)
+    val rows = values.head.values.map(Row(_))
+    val result = values.tail.foldLeft(rows) {
+      case (rows, column) =>
+        (rows zipWith column.values) { (row, cell) =>
+          Row(row.values concat List(cell))
         }
     }
 
-    Rows(rows)
+    Rows(result)
   }
-
-  override def toString: String = s"Columns(${values.mkString(", ")})"
-}
-
-object Columns {
-  def empty[A]: Columns[A] = Columns(Seq.empty)
-
-  def apply[A](column: Column[A], columns: Column[A]*): Columns[A] =
-    Columns(column +: columns)
 }
